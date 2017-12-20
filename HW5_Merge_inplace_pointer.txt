@@ -1,0 +1,186 @@
+//HW5 CSE674
+//Due: Sunday (Nov. 5) at 11:59PM
+//You need to implement the following three functions
+//
+//void merge_sort(node *p, int i);
+//void merge(node *p1, int i1, node *p2, int i2);
+//void merge_sort(vector<int> &V);
+//Read the requirements stated below.
+
+
+#include <iostream>
+#include <list>
+#include <vector>
+#include<algorithm>
+
+using namespace std;
+
+class node {
+public:
+	int value;
+	node *next;
+	node() { next = nullptr; }
+	node(int i) {
+		value = i;
+		next = nullptr;
+	}
+};
+
+class linked_list {
+public:
+	int num_nodes;
+	node *head;
+	linked_list() {
+		num_nodes = 0;
+		head = nullptr;
+	}
+	void make_list(int k, int m);
+	void print();
+	//****************************************************************************************************************************************
+	void merge_sort(node *p, int i); //Sort the portion (i nodes) of linked list beginning at the node pointed by p.
+									 //You will implement the algoeithm using a recursive approach.
+									 //In-place merge sort is required; that is, you are not allowed to create a separate linked list, etc. to perform sorting.
+
+
+									 //You need to also implement the following merge funciton, which
+									 //merges two already sorted porttion of linked list beginning at nodes pointed by p1 and p2, with sizes being i1 nodes and i2 nodes, respectively.
+									 //Assume that these two portions are adjacent.
+									 //That is, the last node of the first portion is immediately followed by the first node of the second portion.
+
+
+	void merge(node *p1, int i1, node *p2, int i2);
+	//*******************************************************************************************************************************************
+
+};
+
+void linked_list::make_list(int k, int m) {
+	for (int i = 0; i < k; i++) {
+		node *p = new node(rand() % m);
+		p->next = head;
+		head = p;
+		num_nodes++;
+	}
+}
+
+void linked_list::print() {
+	node *p = head;
+	cout << endl;
+	while (p != nullptr) {
+		cout << p->value << " ";
+		p = p->next;
+	}
+}
+
+void make_random_vector(vector<int> &V, int k, int m) {
+	for (int i = 0; i < k; i++) V.push_back(rand() % m);
+}
+
+void linked_list::merge_sort(node *p, int i) {
+	if (i <= 1)
+		return;
+	int l1 = i / 2;
+	int l2 = i - i / 2;
+	node *temp = p;
+	for (int i = 0; i < l1; i++) {
+		temp = temp->next;
+	}
+	merge_sort(p, l1);
+	merge_sort(temp, l2);
+	merge(p, l1, temp, l2);
+}
+
+void linked_list::merge(node *p1, int i1, node *p2, int i2) {
+	int i = 1, j = 0;
+	if (p1->value > p2->value) {
+		swap(p1->value, p2->value);
+	}
+
+	node *tail1 = p1;
+	node *tail2 = p2;
+	int t1 = 0, t2 = 0;
+	while (t1 + 1 < i1) {
+		tail1 = tail1->next;
+		t1++;
+	}
+	while (t2 + 1 < i2) {
+		tail2 = tail2->next;
+		t2++;
+	}
+	node *p = p1;
+	p1 = p1->next;
+	while (i < i1 && j < i2) {
+		if (p1->value <= p2->value) {
+			p->next = p1;
+			p1 = p1->next;
+			++i;
+		}
+		else {
+			p->next = p2;
+			p2 = p2->next;
+			++j;
+		}
+		p = p->next;
+	}
+	if (i < i1) {
+		tail1->next = tail2->next;
+		p->next = p1;
+	}
+	else {
+		p->next = p2;
+	}
+}
+void mergeSortHelper(vector<int> &V, int head1, int head2, int tail2) {
+	int tail1 = head2 - 1, index = 0, len = tail2 - head1 + 1, start = head1;
+	vector<int> temp(len);
+	while (head1 <= tail1 || head2 <= tail2) {
+		if (head1 > tail1)
+			temp[index++] = V[head2++];
+		else if (head2 > tail2)
+			temp[index++] = V[head1++];
+		else {
+			if (V[head1] <= V[head2])
+				temp[index++] = V[head1++];
+			else
+				temp[index++] = V[head2++];
+		}
+	}
+	for (int i = 0; i < len; ++i)
+		V[start + i] = temp[i];
+}
+
+//***********************************************************************************************************************
+void merge_sort(vector<int> &V) {
+	int len = V.size();
+	for (int step = 1; step <= len; step <<= 1) {
+		int offset = step + step;
+		for (int index = 0; index < len; index += offset)
+			mergeSortHelper(V, index, min(index + step, len - 1), min(index + offset - 1, len - 1));
+	}
+} //Using iterative (i.e., non_recursive) approach to implement merge sort.
+
+  //***********************************************************************************************************************
+
+
+
+int main() {
+
+	vector<int> V;
+	make_random_vector(V, 50, 40);
+	cout << endl;
+	for (size_t i = 0; i < V.size(); i++) cout << V[i] << " ";
+	merge_sort(V);
+	cout << endl;
+	for (size_t i = 0; i < V.size(); i++) cout << V[i] << " ";
+
+	linked_list L1;
+	L1.make_list(30, 20);
+	L1.print();
+	L1.merge_sort(L1.head, L1.num_nodes);
+	L1.print();
+
+	getchar();
+	getchar();
+	return 0;
+}
+
+

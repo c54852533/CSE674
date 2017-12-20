@@ -1,0 +1,830 @@
+//HW5  AVL Tree
+//Due: Saturday (Nov. 18) at 11:59PM
+
+
+#include <iostream> //to use cout
+#include <algorithm> //to use max function such as  i = max(a, b);
+
+using namespace std;
+
+//You need to use the following node class for each node of the AVL tree
+class node {
+public:
+	int value;
+	int height;
+	int child; //0: this node is a left child of its parent; 1: right child; -1 this node is the tree root
+	node * parent;
+	node * l_child;
+	node * r_child;
+	node() {}
+	node(int i) { value = i; height = 1; parent = l_child = r_child = nullptr; }
+
+};
+
+class avl_tree {
+public:
+	node * root;
+	avl_tree() {
+		root = nullptr;
+	}
+	void add_node(int i)//You need to implement this.
+	{
+		node *p = root;
+		node *newnode = nullptr;
+		if (root == nullptr) {
+			root = new node(i);
+			root->child = -1;
+
+		}
+		else {
+			node *temp = p;
+			int temp1 = -1;
+			while (p != nullptr) {
+				temp = p;
+				if (i < p->value) {
+					p = p->l_child;
+					temp1 = 0;//temp1 means left tree or right tree
+				}
+				else {
+					p = p->r_child;
+					temp1 = 1;
+				}
+			}
+			if (temp1 == 0)
+			{
+				temp->l_child = new node(i);
+				temp->l_child->child = 0;
+				temp->l_child->parent = temp;
+				newnode = temp->l_child;
+			}
+			if (temp1 == 1)
+			{
+				temp->r_child = new node(i);
+				temp->r_child->child = 1;
+				temp->r_child->parent = temp;
+				newnode = temp->r_child;
+			}
+			int pattern = -1;
+			node *action = nullptr;
+			action = height_adjustment(newnode, pattern);
+			//cout << "action node is :" << action->value << "  pattern is:" << pattern << endl;
+			node *father = action->parent;
+			switch (pattern) {
+			case 1: R_Rotate(action); break;
+			case 2:
+
+				L_Rotate(action);
+				R_Rotate(father);
+				break;
+			case 3:
+				R_Rotate(action);
+				L_Rotate(father);
+				break;
+			case 4:L_Rotate(action); break;				
+			}
+
+
+		}
+
+	}
+	void in_order_traversal(node *p);  //provided.
+	node * height_adjustment(node *p, int &pattern)  //You need to implement this
+													 /*
+													 This function is invoked by add_node and remove_node.
+													 p points to the first node that we need to check for possible height update.  We then need to check possible height update toward root.
+													 All nodes whose heights need to be updated will be performed in this function.
+													 If no imbalance is detected, the function returns nullptr.
+													 If an imbalance is detected, the funciton returns the address of Action Node.
+													 In addition, value of pattern will be set to 1, 2, 3, 4 for LL, LR, RL, RR pattern, respectively.
+													 */
+	{
+
+		node *adjust = p;
+		node *adjustagain = p;
+		int left = 0;
+		int right = 0;
+		if (adjust->l_child == nullptr&&adjust->r_child == nullptr) {
+			adjust->height = 1;
+		}
+		node *temp = p;//defines the last node height is right
+		p = p->parent;
+		while (p != nullptr) {
+			if (p->l_child != nullptr&&p->r_child != nullptr) {
+				p->height = max(p->l_child->height, p->r_child->height) + 1;
+			}
+			else {
+				p->height = 1 + temp->height;
+			}
+			temp = p;
+			p = p->parent;
+		}
+		node *paren = adjust->parent;
+		node *action = nullptr;
+		while (adjust != nullptr&&paren != nullptr) {
+			action = paren;
+			if (paren->l_child == nullptr || paren->r_child == nullptr) {
+
+				if (paren->l_child == nullptr) {
+					if (paren->r_child->r_child != nullptr&&paren->r_child->r_child->height == 1) {
+						pattern = 4;
+						return action;
+					}
+					if (paren->r_child->l_child != nullptr&&paren->r_child->l_child->height == 1) {
+						pattern = 3;
+						return action->r_child ;
+					}
+				}
+				if (paren->r_child == nullptr) {
+					if (paren->l_child->l_child != nullptr&&paren->l_child->l_child->height == 1) {
+						pattern = 1;
+						return action;
+					}
+					if (paren->l_child->r_child != nullptr&&paren->l_child->r_child->height == 1) {
+						pattern = 2;
+						return action->l_child ;
+					}
+
+				}
+			}
+			else if (paren->l_child->height - paren->r_child->height == 2 || paren->l_child->height - paren->r_child->height == -2) {
+				if (paren->l_child->height - paren->r_child->height == 2) {
+					if (paren->l_child->l_child ->height >= paren->l_child->r_child->height) {
+						pattern = 1;
+						return action;
+					}
+					if (paren->l_child->l_child->height < paren->l_child->r_child->height) {
+						pattern = 2;
+						return action->l_child;
+					}
+				}
+				if (paren->l_child->height - paren->r_child->height == -2) {
+					if (paren->r_child->l_child->height > paren->r_child->r_child->height) {
+						pattern = 3;
+						return action->r_child;
+					}
+					if (paren->r_child->l_child->height <= paren->r_child->r_child->height) {
+						pattern = 4;
+						return action;
+					}
+				}
+			}
+			adjust = adjust->parent;
+			paren = adjust->parent;
+		}
+		if (adjustagain->l_child == nullptr)left = 0;
+		else left = adjustagain->l_child->height;
+		if (adjustagain->r_child == nullptr)right = 0;
+		else right = adjustagain->r_child->height;
+		if (left - right == 2) {
+			return height_adjustment(adjustagain->l_child, pattern);
+		}
+		if (right - left == 2) {
+			return height_adjustment(adjustagain->r_child, pattern);
+		}
+		
+		return action;
+
+	}
+
+	void R_Rotate(node *p) //You need to implement this.
+							//p points to the node around which the rotation will be performed.
+	{
+		if (p->child == -1) {
+			node *newparent = p->l_child;
+			node *rightchild = newparent->r_child;
+			node *father = p->parent;
+			root = newparent;
+			newparent->parent = father;
+			newparent->child = -1;
+			p->parent = newparent;
+			newparent->r_child = p;
+			p->l_child = rightchild;
+			p->child = 1;
+			if (rightchild != nullptr) {
+				rightchild->child = 0;
+				rightchild->parent = p;
+			}
+			if (p->l_child == nullptr&&p->r_child == nullptr) {
+				int pattern = 0;
+				height_adjustment(newparent->r_child, pattern);
+			}
+			else {
+				int pattern = 0;
+				height_adjustment(p->r_child, pattern);
+			}
+
+		}
+		else {
+			node *newparent = p->l_child;
+			node *rightchild = newparent->r_child;
+			node *father = p->parent;
+			int child = p->child;
+			if (child == 0) //father should not directly choose one child but select the one was replaced
+			{
+				father->l_child = newparent;
+			}
+			if (child == 1)
+			{
+				father->r_child = newparent;
+			}
+			newparent->child = child;
+			newparent->parent = father;
+			p->parent = newparent;
+			newparent->r_child = p;
+			p->l_child = rightchild;
+			p->child = 1;
+			if (rightchild != nullptr) {
+				rightchild->child = 0;
+				rightchild->parent = p;
+			}
+			if (p->l_child == nullptr&&p->r_child == nullptr) {
+				int pattern = 0;
+				height_adjustment(newparent->r_child, pattern);
+			}
+			else {
+				int pattern = 0;
+				if (p->l_child != nullptr) {
+					height_adjustment(p->l_child, pattern);
+				}
+				if (p->r_child != nullptr) {
+					height_adjustment(p->r_child, pattern);
+				}
+			}
+		}
+	}
+
+	void L_Rotate(node *p)//You need to implement this.
+							//p points to the node around which the rotation will be performed.
+	{
+		if (p->child == -1) {
+			node *newparent = p->r_child;
+			node *leftchild = newparent->l_child;
+			node *father = p->parent;
+			root = newparent;
+			newparent->parent = father;
+			newparent->child = -1;
+			p->parent = newparent;
+			newparent->l_child = p;
+			p->r_child = leftchild;
+			p->child = 0;
+			if (leftchild != nullptr) {
+				leftchild->child = 1;
+				leftchild->parent = p;
+			}
+			if (p->l_child == nullptr&&p->r_child == nullptr) {
+				int pattern = 0;
+				height_adjustment(newparent->l_child, pattern);
+			}
+			else {
+				int pattern = 0;
+				if (p->l_child != nullptr) {
+					height_adjustment(p->l_child, pattern);
+				}
+				if (p->l_child != nullptr) {
+					height_adjustment(p->l_child, pattern);
+				}
+			}
+
+		}
+		else {
+			node *newparent = p->r_child;
+			node *leftchild = newparent->l_child;
+			node *father = p->parent;
+			int child = p->child;
+			if (child == 0) //father should not directly choose one child but select the one was replaced
+			{
+				father->l_child = newparent;
+			}
+			if (child == 1)
+			{
+				father->r_child = newparent;
+			}
+			newparent->child = child;
+			newparent->parent = father;
+			p->parent = newparent;
+			newparent->l_child = p;
+			p->r_child = leftchild;
+			p->child = 0;
+			if (leftchild != nullptr) {
+				leftchild->child = 1;
+				leftchild->parent = p;
+			}
+			if (p->l_child == nullptr&&p->r_child == nullptr) {
+				int pattern = 0;
+				height_adjustment(newparent->l_child, pattern);
+			}
+			else {
+				int pattern = 0;
+				if (p->l_child != nullptr) {
+					height_adjustment(p->l_child, pattern);
+				}
+				if (p->r_child != nullptr) {
+					height_adjustment(p->r_child, pattern);
+				}
+			}
+
+		}
+	}
+
+	void remove_node(int i)// You need to implement this.
+							//Remove the node with value i.  Assume that all node values are distinct.
+	{
+		if (root == nullptr)return;
+		node *p = root;
+		node *paren = root;
+		if (i == root->value) {
+			if (root->l_child == nullptr&&root->r_child == nullptr) {
+				root = nullptr;
+				delete p;
+				return;
+			}
+		}
+		node *height_adjust;
+		while (p != nullptr) 
+		{
+			if (i < p->value) {
+				paren = p;
+				p=p->l_child;
+				continue;
+			}
+			if (i > p->value) {
+				paren = p;
+				p=p->r_child;
+				continue;
+			}
+			if (i == p->value) {
+				replace(p);
+				break;
+			}
+			
+		}
+		return;//node dose not exist
+	}
+
+
+	node * replace(node * p1)
+	{
+		node *paren=p1->parent;
+		if (p1->l_child == nullptr&&p1->r_child == nullptr) {
+			node *action;
+			int pattern = 0;
+			if (p1->child == 0) {
+				paren->l_child = nullptr;
+				delete p1;
+				action=height_adjustment(paren,pattern);
+				if (action == nullptr)return nullptr;
+				node *father = action->parent;
+				switch (pattern) {
+				case 1: R_Rotate(action); break;
+				case 2:
+
+					L_Rotate(action);
+					R_Rotate(father);
+					break;
+				case 3:
+					R_Rotate(action);
+					L_Rotate(father);
+					break;
+				case 4:L_Rotate(action); break;
+				}
+				return nullptr;
+
+			}
+			if (p1->child == 1) {
+				paren->r_child = nullptr;
+				delete p1;
+				action=height_adjustment(paren, pattern);
+				if (action == nullptr)return nullptr;
+				node *father = action->parent;
+				switch (pattern) {
+				case 1: R_Rotate(action); break;
+				case 2:
+
+					L_Rotate(action);
+					R_Rotate(father);
+					break;
+				case 3:
+					R_Rotate(action);
+					L_Rotate(father);
+					break;
+				case 4:L_Rotate(action); break;
+				}
+				return nullptr;
+				return nullptr;
+			}
+
+		}
+		else
+		{
+			node *search;
+			node *result;
+			node *action;
+			if (p1->l_child == nullptr || p1->r_child == nullptr) {
+				if (p1->l_child == nullptr) {
+					search = p1->r_child;
+					result = search;
+					while (search != nullptr) {
+						result = search;
+						search = search->l_child;
+					}
+					p1->value = result->value;
+					node *temp = result->parent;
+					replace(result);
+					int pattern = 0;
+					action = height_adjustment(temp, pattern);
+					if (action == nullptr)return nullptr;
+					node *father = action->parent;
+					switch (pattern) {
+					case 1: R_Rotate(action); break;
+					case 2:
+
+						L_Rotate(action);
+						R_Rotate(father);
+						break;
+					case 3:
+						R_Rotate(action);
+						L_Rotate(father);
+						break;
+					case 4:L_Rotate(action); break;
+					}
+					return nullptr;
+				}
+				if (p1->r_child == nullptr) {
+					search = p1->l_child;
+					result = search;
+					while (search != nullptr) {
+						result = search;
+						search = search->r_child;
+					}
+					p1->value = result->value;
+					node *temp = result->parent;
+					replace(result);
+					int pattern = 0;
+					action = height_adjustment(temp, pattern);
+					if (action == nullptr)return nullptr;
+					node *father = action->parent;
+					switch (pattern) {
+					case 1: R_Rotate(action); break;
+					case 2:
+
+						L_Rotate(action);
+						R_Rotate(father);
+						break;
+					case 3:
+						R_Rotate(action);
+						L_Rotate(father);
+						break;
+					case 4:L_Rotate(action); break;
+					}
+					return nullptr;
+				}
+			}
+			else {
+					search = p1->l_child;
+					result = search;
+					while (search != nullptr) {
+						result = search;
+						search = search->r_child;
+					}
+					p1->value = result->value;
+					node *temp = result->parent;
+					replace(result);
+					int pattern = 0;
+					action = height_adjustment(temp, pattern);
+					if (action == nullptr)return nullptr;
+					node *father = action->parent;
+					switch (pattern) {
+					case 1: R_Rotate(action); break;
+					case 2:
+
+						L_Rotate(action);
+						R_Rotate(father);
+						break;
+					case 3:
+						R_Rotate(action);
+						L_Rotate(father);
+						break;
+					case 4:L_Rotate(action); break;
+					}
+					return nullptr;
+
+			}
+		}
+	}
+
+
+};
+
+void avl_tree::in_order_traversal(node * p) {
+	if (p == nullptr)  return;
+	in_order_traversal(p->l_child);
+	cout << "value = " << p->value << " " << "height = " << p->height << "   ";
+	in_order_traversal(p->r_child);
+}
+
+
+
+
+
+int main() {
+
+	avl_tree t1;
+	t1.add_node(45);
+	t1.in_order_traversal(t1.root);
+	cout << endl;
+	t1.remove_node(45);
+	t1.in_order_traversal(t1.root);
+	cout << endl;
+	t1.add_node(50);
+	t1.add_node(47);
+	t1.add_node(30);
+	t1.add_node(35);
+	t1.in_order_traversal(t1.root);
+	cout << endl;
+	t1.remove_node(47);
+	t1.in_order_traversal(t1.root);
+
+	//avl_tree t1;
+	//t1.add_node(60);
+	//t1.add_node(35);
+	//t1.add_node(48);
+	//t1.add_node(53);
+	//t1.add_node(54);
+	//t1.add_node(70);
+	//t1.add_node(5);
+	//t1.add_node(3);
+	//t1.add_node(57);
+	//t1.add_node(80);
+	//t1.add_node(90);
+	//t1.add_node(75);
+	//t1.add_node(85);
+	//t1.add_node(32);
+	//t1.add_node(37);
+	//t1.add_node(40);
+	//t1.add_node(28);
+	//t1.add_node(22);
+	//t1.in_order_traversal(t1.root);
+	//cout << "before remove" << endl;
+	//cout << endl;
+	//t1.remove_node(54);	
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(53);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(48);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(40);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(37);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(35);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(32);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(28);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(22);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(5);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(3);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(70);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(60);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(80);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(75);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(90);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	//t1.remove_node(85);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+
+
+	/////////////LL 根单分支//////////////
+	//avl_tree t1;
+	//t1.add_node(45);
+	//t1.add_node(43);
+	//t1.add_node(40);
+	//t1.in_order_traversal(t1.root);
+	//cout << endl;
+	//cout << endl;
+	////////////LL 根多分枝///////////////
+	//avl_tree t2;
+	//t2.add_node(45);
+	//t2.add_node(50);
+	//t2.add_node(40);
+	//t2.add_node(42);
+	//t2.add_node(35);
+	//t2.add_node(30);
+	//t2.in_order_traversal(t2.root);
+	//cout << endl;
+	//cout << endl;
+	/////////////LL 单分支//////////////
+	//avl_tree t3;
+	//t3.add_node(45);
+	//t3.add_node(50);
+	//t3.add_node(40);
+	//t3.add_node(35);
+	//t3.add_node(30);
+	//t3.in_order_traversal(t3.root);
+	//cout << endl;
+	//cout << endl;
+	////////////LL 多分枝///////////////
+	//avl_tree t4;
+	//t4.add_node(45);
+	//t4.add_node(50);
+	//t4.add_node(40);
+	//t4.add_node(42);
+	//t4.add_node(35);
+	//t4.add_node(60);
+	//t4.add_node(30);
+	//t4.add_node(37);
+	//t4.add_node(25);
+	//t4.in_order_traversal(t4.root);
+	//cout << endl;
+	//cout << endl;
+	/////////////RR 根单分支//////////////
+	//avl_tree t5;
+	//t5.add_node(45);
+	//t5.add_node(50);
+	//t5.add_node(55);
+	//t5.in_order_traversal(t5.root);
+	//cout << endl;
+	//cout << endl;
+	////////////RR 根多分枝///////////////
+	//avl_tree t6;
+	//t6.add_node(45);
+	//t6.add_node(50);
+	//t6.add_node(40);
+	//t6.add_node(47);
+	//t6.add_node(55);
+	//t6.add_node(60);
+	//t6.in_order_traversal(t6.root);
+	//cout << endl;
+	//cout << endl;
+	/////////////RR 单分支//////////////
+	//avl_tree t7;
+	//t7.add_node(45);
+	//t7.add_node(50);
+	//t7.add_node(40);
+	//t7.add_node(55);
+	//t7.add_node(60);
+	//t7.in_order_traversal(t7.root);
+	//cout << endl;
+	//cout << endl;
+	////////////RR 多分枝///////////////
+	//avl_tree t8;
+	//t8.add_node(45);
+	//t8.add_node(50);
+	//t8.add_node(40);
+	//t8.add_node(30);
+	//t8.add_node(47);
+	//t8.add_node(55);
+	//t8.add_node(53);
+	//t8.add_node(60);
+	//t8.add_node(65);
+	//t8.in_order_traversal(t8.root);
+	//cout << endl;
+	//cout << endl;
+	/////////////LR 根单分支//////////////
+	//avl_tree t9;
+	//t9.add_node(45);
+	//t9.add_node(35);
+	//t9.add_node(40);
+	//t9.in_order_traversal(t9.root);
+	//cout << endl;
+	//cout << endl;
+	////////////LR 根多分枝///////////////
+	//avl_tree t10;
+	//t10.add_node(45);
+	//t10.add_node(50);
+	//t10.add_node(40);
+	//t10.add_node(43);
+	//t10.add_node(35);
+	//t10.add_node(42);
+	//t10.in_order_traversal(t10.root);
+	//cout << endl;
+	//cout << endl;
+	/////////////LR 单分支//////////////
+	//avl_tree t11;
+	//t11.add_node(45);
+	//t11.add_node(50);
+	//t11.add_node(40);
+	//t11.add_node(35);
+	//t11.add_node(37);
+	//t11.in_order_traversal(t11.root);
+	//cout << endl;
+	//cout << endl;
+	////////////LR 多分枝///////////////
+	//avl_tree t12;
+	//t12.add_node(45);
+	//t12.add_node(50);
+	//t12.add_node(40);
+	//t12.add_node(35);
+	//t12.add_node(43);
+	//t12.add_node(60);
+	//t12.add_node(30);
+	//t12.add_node(37);
+	//t12.add_node(36);
+	//t12.in_order_traversal(t12.root);
+	//cout << endl;
+	//cout << endl;
+	/////////////RL 根单分支//////////////
+	//avl_tree t13;
+	//t13.add_node(45);
+	//t13.add_node(50);
+	//t13.add_node(48);
+	//t13.in_order_traversal(t13.root);
+	//cout << endl;
+	//cout << endl;
+	////////////RL 根多分枝///////////////
+	//avl_tree t14;
+	//t14.add_node(45);
+	//t14.add_node(50);
+	//t14.add_node(40);
+	//t14.add_node(47);
+	//t14.add_node(55);
+	//t14.add_node(48);
+	//t14.in_order_traversal(t14.root);
+	//cout << endl;
+	//cout << endl;
+	/////////////RL 单分支//////////////
+	//avl_tree t15;
+	//t15.add_node(45);
+	//t15.add_node(50);
+	//t15.add_node(40);
+	//t15.add_node(55);
+	//t15.add_node(52);
+	//t15.in_order_traversal(t15.root);
+	//cout << endl;
+	//cout << endl;
+	////////////RL 多分枝///////////////
+	//avl_tree t16;
+	//t16.add_node(45);
+	//t16.add_node(50);
+	//t16.add_node(40);
+	//t16.add_node(35);
+	//t16.add_node(47);
+	//t16.add_node(55);
+	//t16.add_node(52);
+	//t16.add_node(60);
+	//t16.add_node(53);
+	//t16.in_order_traversal(t16.root);
+	//cout << endl;
+	//cout << endl;
+
+	//t1.add_node(45);
+	//t1.add_node(50);
+	//t1.add_node(40);
+	//t1.add_node(42);
+	//t1.add_node(35);
+	//t1.add_node(60);
+	//t1.add_node(30);
+	//t1.add_node(37);
+	//t1.add_node(43);
+	//t1.add_node(25);
+
+	//t1.remove_node(42);
+	//t1.in_order_traversal(t1.root);
+	//t1.remove_node(47);
+	//t1.in_order_traversal(t1.root);
+	getchar();
+	getchar();
+	return 0;
+}

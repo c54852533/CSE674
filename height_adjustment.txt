@@ -1,0 +1,42 @@
+
+node * avl_tree::height_adjustment(node *p, int &pattern) {
+	int pattern1, pattern2;
+	node * p1;
+	int l_height, r_height, new_height;
+	while (p != nullptr) {
+		if (p->l_child == nullptr) l_height = 0; else l_height = p->l_child->height;
+		if (p->r_child == nullptr) r_height = 0; else r_height = p->r_child->height;
+		new_height = max(l_height, r_height) + 1;
+		if (new_height == p->height) { return nullptr; }
+		p->height = new_height;
+		if (abs(l_height - r_height) > 1) {
+
+			if (l_height > r_height) {
+				pattern1 = 0; //L pattern
+				p1 = p->l_child;
+			}
+			else {
+				pattern1 = 1; //R pattern
+				p1 = p->r_child;
+			}
+
+			if (p1->l_child == nullptr) l_height = 0; else l_height = p1->l_child->height;
+			if (p1->r_child == nullptr) r_height = 0; else r_height = p1->r_child->height;
+
+			if (l_height > r_height) {
+				pattern2 = 0; //L pattern
+			}
+			else {
+				pattern2 = 1; //R pattern
+			}
+			if (pattern1 == 0 && pattern2 == 0) pattern = 0; //L-L pattern.  Need to invoke  R_Rotate
+			if (pattern1 == 0 && pattern2 == 1) pattern = 1; //L-R pattern.  Need to invoke  L_Rotate and then R_Rotate
+			if (pattern1 == 1 && pattern2 == 0) pattern = 2; //R-L pattern.  Need to invoke  R_Rotate and then L_Rotate
+			if (pattern1 == 1 && pattern2 == 1) pattern = 3; //R-R pattern.  Need to invoke  L_Rotate
+			return p;
+		}
+		p = p->parent;
+	} //p points to the action nodee
+	//the first node with height imbalance
+	return nullptr;
+}

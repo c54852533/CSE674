@@ -1,0 +1,162 @@
+//Dijkstra's algorithm by C-Y (Roger) Chen, Syracuse University
+//Implemented with min-Heap
+//Time Complexity O(N + E log N)
+
+#include <iostream>
+#include <vector>
+#include <fstream>
+using namespace std;
+class e_node { //stands for edge node
+public:
+	int nb;//the neighbor of a currently considered node
+	int weight; //weight of the edge to the above neighbor
+	int checked;
+	e_node() { checked = 0; }//constructor
+};
+class rt_node { //rt stands for routing table
+public:
+	int cost;  //cost to a node
+	int from;  //the from node to this node
+	int to;
+	rt_node() { from = -1;  cost = 9999;  to = -1; }
+	rt_node(int i,int j, int k) { from = i;  to = j;  cost = k; }
+};
+
+class h_node { //stands for heap_node
+public:
+	int from;
+	int to;
+	int cost;
+	h_node() { from = -1; to = -1; cost = 9999; }
+	h_node(int i, int j, int k) { from = i; to = j; cost = k; }
+	bool operator<(h_node h) { return (cost < h.cost); }
+};
+
+void heap_adjust_up(vector<rt_node> &rt, vector<h_node> & heap, int &n);
+void heap_adjust_down(vector<rt_node> & rt, vector<h_node> & heap, vector<vector<e_node>> & graph);
+void heap_op(vector<vector<e_node>> & graph, vector<rt_node> & rt, vector<h_node> &heap);
+
+int main() {
+	ifstream in("big_text1_HW4.txt");
+	int start;
+	in >> start;//source node for the Dijkstra's algorithm
+	int n, e; //n: num of nodes ; e: num of edges
+	in >> n >> e;
+	vector<e_node> ve;
+	vector<vector<e_node> > graph(n, ve);
+	e_node e1;
+	int n1, n2, w;
+	for (int i = 0; i < e; i++) {
+		in >> n1 >> n2 >> w;
+		e1.nb = n2;
+		e1.weight = w;
+		graph[n1].push_back(e1);
+		e1.nb = n1;
+		e1.weight = w;
+		graph[n2].push_back(e1);
+	}
+	in.close();
+	vector<rt_node> rt; //rt stands for routing table
+	vector<h_node> heap;
+
+	heap_op(graph, rt, heap);
+
+	for (int i = 0; i < rt.size(); i++) {
+
+		cout << "cost from" << rt[i].from << " to " << rt[i].to << " is: " << rt[i].cost << endl;
+	}
+	getchar();
+	getchar();
+	return 0;
+}
+void heap_adjust_down_1(vector<rt_node> & rt, vector<h_node> & heap, vector<vector<e_node>> & graph) {
+
+	rt_node x(heap[0].from, heap[0].to, heap[0].cost);
+	rt.push_back(x);//添加checked相关代码，push_back新节点
+	for (int i = 0; i < graph[heap[0].from].size(); i++) {
+		if (graph[heap[0].from][i].nb == heap[0].to) {
+
+			for (int j = 0; j < graph[heap[0].to].size(); j++) {
+				if (graph[heap[0].to][j].nb == heap[0].from) {
+
+				}
+			}
+		}
+	}
+	heap.clear();
+}
+void heap_adjust_down(vector<rt_node> & rt, vector<h_node> & heap , vector<vector<e_node>> & graph) {	
+	rt_node x(heap[0].from, heap[0].to,heap[0].cost );
+	rt.push_back(x);//添加checked相关代码，push_back新节点
+	for (int i = 0; i < graph[heap[0].from].size();i++) {
+		if (graph[heap[0].from][i].nb == heap[0].to) {
+			graph[heap[0].from][i].checked = 1;
+			for (int j = 0; j < graph[heap[0].to].size();j++) {
+				if (graph[heap[0].to][j].nb == heap[0].from) {
+					graph[heap[0].to][j].checked = 1;
+				}
+			}
+		}
+	}
+	heap.clear();
+}
+void heap_adjust_up(vector<rt_node> & rt, vector<h_node> & heap, int &n) {
+	int i = n - 1;
+	while (i > 0) {
+		int index = (i - 1)*0.5;
+		int minId = index;
+		int left, right;
+		if (i % 2) {
+			left = i;
+			if (heap[left].cost < heap[index].cost)minId = left;
+		}
+		else {
+			left = i - 1;
+			right = i;
+			if (heap[right].cost < heap[index].cost)minId = right;
+			if (heap[left].cost < heap[index].cost&&heap[left].cost < heap[right].cost)minId = left;
+		}
+		if (index != minId) {
+			h_node temp;
+			temp = heap[minId];
+			heap[minId] = heap[index];
+			heap[index] = temp;
+		}
+		i--;
+	}
+
+}
+void heap_op(vector<vector<e_node>> & graph, vector<rt_node> & rt, vector<h_node> &heap) {
+	vector<int> nodes;
+	int temp_num = 0;
+	for (int i = 0; i < graph.size(); i++) {
+		for (int j = 0; j < graph[i].size(); j++) {
+			h_node temp(i, graph[i][j].nb, graph[i][j].weight);
+			heap.push_back(temp);
+			temp_num++;
+		}
+	}
+	heap_adjust_up(rt, heap, temp_num);
+	int start = heap.front().from;
+	heap_adjust_down_1(rt, heap, graph);
+	rt.clear();
+	nodes.push_back(start);
+	for (int i = 0; i < graph.size(); i++) {
+		int num = 0;
+		for (int j = 0; j < nodes.size();j++) {
+			for (int k = 0; k < graph[j].size();k++) {
+				if(graph[j][k].checked==0){
+					h_node temp(j, graph[j][k].nb, graph[j][k].weight);
+					heap.push_back(temp);
+					num++;
+				}
+				
+			}
+		}
+		heap_adjust_up(rt, heap, num);
+		nodes.push_back(heap[0].from);
+		heap_adjust_down(rt, heap,graph);
+
+	}
+
+}

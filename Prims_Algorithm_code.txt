@@ -1,0 +1,180 @@
+//Prim's algorithm by C-Y(Roger) Chen, Syracuse University
+//Implemented with min-Heap
+//Time Complexity O((N + E ) log N) N: #nodes; E: #edges
+
+#include <iostream>
+#include <vector>
+#include <fstream>
+using namespace std;
+class e_node { //stands for edge node
+public:
+	int nb;//the neighbor of a currently considered node
+	int weight; //weight of the edge to the above neighbor
+	e_node() {}//constructor
+};
+class rt_node { //rt stands for routing table
+public:
+	int cost;  //cost to a node
+	int from;  //the from node to this node
+	int checked;
+	int h_pos; //the postion in heap for this node
+	rt_node() { from = -1;  cost = 9999;  checked = 0; }
+};
+
+class table_node { //rt stands for routing table
+public:
+	int cost;  //cost to a node
+	int neighbor;  //the from node to this node
+	bool selected;
+	int h_pos; //the position in heap for this node
+	table_node() { cost = 9999; neighbor = -1; selected = false; }
+};
+
+
+class h_node { //stands for heap_node
+public:
+	int id;
+	int cost;
+	h_node() { id = -1; cost = 9999; }
+	h_node(int i, int j) { id = i; cost = j; }
+	bool operator<(h_node h) { return (cost < h.cost); }
+};
+
+void set_up(vector<table_node> &table, vector<h_node> & heap, int &start); //Insert the souce node to heap and update rt and heap accordingly
+void heap_adjust_up(vector<table_node> &table, vector<h_node> & heap, int &n);
+void heap_adjust_down(vector<table_node> & table, vector<h_node> & heap);
+void heap_op(vector<vector<e_node>> & graph, vector<table_node> & table, vector<h_node> &heap);
+
+int main() {
+
+	ifstream in("text1.txt");
+	int n, e; //n: num of nodes ; e: num of edges
+	in >> n >> e;
+	vector<e_node> ve;
+	vector<vector<e_node> > graph(n, ve);
+	e_node e1, e2;
+	int n1, n2, w;
+	for (int i = 0; i < e; i++) {
+		in >> n1 >> n2 >> w;
+		e1.nb = n2;
+		e1.weight = w;
+		e2.nb = n1;
+		e2.weight = w;
+		graph[n1].push_back(e1);
+		graph[n2].push_back(e2);
+	}
+	in.close();
+	table_node tb;
+	vector<table_node> table(n, tb);
+	vector<h_node> heap(n);
+	
+	int start =  rand() % n;
+	set_up(table, heap, start);
+	heap_op(graph, table, heap);
+
+
+
+
+	//cout << "The following edges form the minimum spanning tree:" << endl;
+	for (int i = 0; i < n; i++) {
+
+		if (table[i].cost > 0) {
+			cout << i << " " << table[i].neighbor << " " << table[i].cost << endl;
+		}
+	}
+	getchar();
+	getchar();
+	return 0;
+}
+
+
+void set_up(vector<table_node> &table, vector<h_node> & heap, int &start) {
+	table[start].neighbor = start;
+	table[start].cost = 0;
+	for (size_t i = 0; i < heap.size(); i++) {
+		heap[i].id = i;
+		table[i].h_pos = i;
+	}
+	heap[start].id = 0;
+	heap[0].id = start;
+	heap[0].cost = 0;
+	table[0].h_pos = start;
+	table[start].h_pos = 0;
+}
+
+
+
+void heap_adjust_down(vector<table_node> & table, vector<h_node> & heap) {
+	int temp = 0;
+	int end = 0;
+	int n;
+	h_node h;
+	while (temp < (int)heap.size() && end == 0) {
+		end = 1;
+		if ((temp * 2 + 2) < (int)heap.size()) {
+			if (heap[temp * 2 + 2] < heap[temp] || heap[temp * 2 + 1] < heap[temp])
+			{
+				n = (heap[temp * 2 + 1] < heap[temp * 2 + 2]) ? temp * 2 + 1 : temp * 2 + 2;
+				table[heap[n].id].h_pos = temp;
+				table[heap[temp].id].h_pos = n;
+				h = heap[temp];
+				heap[temp] = heap[n];
+				heap[n] = h;
+				temp = n;
+				end = 0;
+			}
+		}
+		else if ((temp * 2 + 1) < (int)heap.size()) {
+			if (heap[2 * temp + 1] < heap[temp]) {
+				table[heap[temp].id].h_pos = 2 * temp + 1;
+				table[heap[2 * temp + 1].id].h_pos = temp;
+				h = heap[temp];
+				heap[temp] = heap[temp * 2 + 1];
+				heap[temp * 2 + 1] = h;
+				end = 0;
+				temp = temp * 2 + 1;
+			}
+		}
+	}
+}
+
+void heap_adjust_up(vector<table_node> & table, vector<h_node> & heap, int &n) {
+	int temp = n;
+	h_node h;
+	int end = 0;
+	while (temp != 0 && end == 0) {
+		end = 1;
+		if (heap[temp] < heap[(temp - 1) / 2]) {
+
+			table[heap[temp].id].h_pos = (temp - 1) / 2;
+			table[heap[(temp - 1) / 2].id].h_pos = temp;
+			h = heap[temp];
+			heap[temp] = heap[(temp - 1) / 2];
+			heap[(temp - 1) / 2] = h;
+			temp = (temp - 1) / 2;
+			end = 0;
+		}
+	}
+}
+
+
+void heap_op(vector<vector<e_node>> & graph, vector<table_node> & table, vector<h_node> &heap) {
+	int n;
+	while (!heap.empty()) {
+		int s = heap[0].id;
+		table[s].selected = true;
+		heap[0] = heap[heap.size() - 1];
+		table[heap[0].id].h_pos = 0;
+		heap.pop_back();
+		heap_adjust_down(table, heap);
+		for (size_t i = 0; i < graph[s].size(); i++) {
+			n = graph[s][i].nb;
+			if (table[n].selected == false && graph[s][i].weight < table[n].cost) {
+				table[n].cost = graph[s][i].weight;
+				table[n].neighbor = s;
+				heap[table[n].h_pos].cost = table[n].cost;
+				heap_adjust_up(table, heap, table[n].h_pos);
+			}
+		}
+	}
+}
